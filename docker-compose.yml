@@ -4,6 +4,13 @@ x-common-env: &common-env
   PGID: ${PGID:-1000}
   TZ: ${TZ:-Europe/Madrid}
 
+# Rotación de logs: evita que los logs de Docker llenen el disco
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   sonarr:
     image: linuxserver/sonarr:latest
@@ -16,6 +23,13 @@ services:
     ports:
       - 8989:8989
     restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8989/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   radarr:
     image: linuxserver/radarr:latest
@@ -28,6 +42,13 @@ services:
     ports:
       - 7878:7878
     restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:7878/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   transmission:
     image: linuxserver/transmission:latest
@@ -42,6 +63,13 @@ services:
       - 51413:51413
       - 51413:51413/udp
     restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:9091/transmission/web/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   prowlarr:
     image: linuxserver/prowlarr:latest
@@ -53,6 +81,13 @@ services:
     ports:
       - 9696:9696
     restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:9696/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   plex:
     image: linuxserver/plex:latest
@@ -65,6 +100,13 @@ services:
       - ./plex/config:/config
       - ./media:/media
     restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:32400/identity"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   lidarr:
     image: linuxserver/lidarr:latest
@@ -77,6 +119,13 @@ services:
     ports:
       - 8686:8686
     restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8686/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
   bazarr:
     image: linuxserver/bazarr:latest
@@ -89,3 +138,10 @@ services:
     ports:
       - 6767:6767
     restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:6767/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
