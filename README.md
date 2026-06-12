@@ -23,32 +23,46 @@ Stack completo de automatización de descargas y gestión de contenido multimedi
 | **Plex** | 32400 | Media Server para reproducción |
 | **Bazarr** | 6767 | Descarga automática de subtítulos |
 
+## 📋 Prerrequisitos
+
+- **Sistema operativo**: Linux (probado en Raspberry Pi / ARM64 y x86_64).
+- **Docker Engine** 20.10+ y el plugin **Docker Compose v2**:
+  ```bash
+  # Instalación rápida (Debian/Ubuntu/Raspberry Pi OS)
+  curl -fsSL https://get.docker.com | sh
+  sudo usermod -aG docker "$USER"   # cierra sesión y vuelve a entrar
+  docker compose version            # verifica que Compose v2 está disponible
+  ```
+- **git** para clonar el repositorio.
+- **Espacio en disco** suficiente para tu biblioteca (las descargas y los hardlinks viven en `media/`).
+- El **filesystem de `media/` debe soportar hardlinks** (ext4, xfs, btrfs…). Evita montar `downloads/` y `tv/` en volúmenes distintos: el hardlink solo funciona dentro del mismo filesystem.
+
 ## 📁 Estructura de Directorios
 
 ```
-sonarr/
-├── docker-compose.yml
+media-stack/
+├── docker-compose.yml   # Definición de los 7 servicios
+├── .env.example         # Plantilla de variables (PUID/PGID/TZ) → copiar a .env
+├── .gitignore           # Excluye media/ y los config/ con secretos
 ├── README.md
-├── sonarr/
-│   └── config/          # Configuración de Sonarr
-├── radarr/
-│   └── config/          # Configuración de Radarr
-├── transmission/
-│   └── config/          # Configuración de Transmission
-├── prowlarr/
-│   └── config/          # Configuración de Prowlarr
-├── plex/
-│   └── config/          # Configuración de Plex
-├── bazarr/
-│   └── config/          # Configuración de Bazarr
+├── sonarr/config/       # Config de Sonarr      (se crea sola al primer arranque)
+├── radarr/config/       # Config de Radarr      (idem)
+├── lidarr/config/       # Config de Lidarr      (idem)
+├── transmission/config/ # Config de Transmission(idem)
+├── prowlarr/config/     # Config de Prowlarr    (idem)
+├── plex/config/         # Config de Plex        (idem)
+├── bazarr/config/       # Config de Bazarr      (idem)
 └── media/               # ⭐ Directorio unificado (optimizado para hardlinks)
     ├── downloads/       # Descargas de Transmission
     │   ├── complete/    # Descargas completadas
     │   │   └── tv-sonarr/  # Categoría para Sonarr
     │   └── incomplete/  # Descargas en progreso
     ├── tv/              # Biblioteca de series (hardlinks)
-    └── movies/          # Biblioteca de películas (hardlinks)
+    ├── movies/          # Biblioteca de películas (hardlinks)
+    └── music/           # Biblioteca de música (hardlinks)
 ```
+
+> ℹ️ Los directorios `*/config/` y `media/` **no están en el repositorio** (ver `.gitignore`). Docker los crea automáticamente la primera vez que levantas el stack.
 
 ## 🔗 Optimización de Hardlinks
 
@@ -71,30 +85,53 @@ du -sh media/
 
 ## 🚀 Inicio Rápido
 
-### 1. Iniciar el stack completo
+### 1. Clonar el repositorio
 ```bash
-cd /home/ubuntu/www/sonarr
-cp .env.example .env   # primera vez: ajusta PUID/PGID/TZ
-docker compose up -d
+git clone <URL-DEL-REPOSITORIO> media-stack
+cd media-stack
 ```
 
-### 2. Detener el stack
+### 2. Configurar variables de entorno
+```bash
+cp .env.example .env
+# Edita .env y ajusta PUID/PGID (usa `id -u` y `id -g`) y TZ a tu zona horaria
+```
+
+### 3. Iniciar el stack completo
+```bash
+docker compose up -d
+```
+La primera vez Docker descargará las imágenes y creará los directorios `*/config/` y `media/`. Luego abre cada servicio en su puerto (ver tabla de servicios) para configurarlo.
+
+### 4. Detener el stack
 ```bash
 docker compose down
 ```
 
-### 3. Ver logs
+### 5. Ver logs
 ```bash
-docker compose logs -f
+docker compose logs -f          # todos los servicios
+docker compose logs -f sonarr   # uno específico
 ```
 
-### 4. Reiniciar un servicio específico
+### 6. Reiniciar un servicio específico
 ```bash
 docker compose restart sonarr
-# o radarr, transmission, prowlarr, plex
+# o radarr, lidarr, transmission, prowlarr, plex, bazarr
+```
+
+### 7. Actualizar el stack a la última versión
+```bash
+docker compose pull        # descarga las imágenes :latest más recientes
+docker compose up -d       # recrea los contenedores
+docker image prune -f      # libera las imágenes antiguas
 ```
 
 ## ⚙️ Configuración Inicial
+
+> 🌐 **Nota sobre las URLs**: `http://localhost:<puerto>` funciona si abres el navegador **en la misma máquina** donde corre Docker. Desde otro equipo de la red, reemplaza `localhost` por la **IP del host** (ej. `http://192.168.1.50:8989`).
+>
+> 🔗 **Comunicación entre servicios**: cuando un servicio se conecta a otro (Prowlarr→Sonarr, Bazarr→Radarr, etc.) usa el **nombre del contenedor** como host (`sonarr`, `radarr`, `transmission`…), **no** `localhost`. Todos comparten la red por defecto de Docker Compose y se resuelven por nombre.
 
 ### 1. Prowlarr (http://localhost:9696)
 
@@ -177,7 +214,29 @@ docker compose restart sonarr
 
 **Los indexers se sincronizan automáticamente desde Prowlarr**
 
-### 5. Plex (http://localhost:32400/web)
+### 5. Lidarr (http://localhost:8686)
+
+**Configurar Root Folder:**
+1. Settings → Media Management → Root Folders → Add
+   - Path: `/media/music`
+
+**Configurar Download Client:**
+1. Settings → Download Clients → Add → Transmission
+   - Name: `Transmission`
+   - Host: `transmission`
+   - Port: `9091`
+   - Username: `admin`
+   - Password: `admin`
+   - Category: `lidarr`
+
+**Configurar Media Management (para hardlinks):**
+1. Settings → Media Management
+   - ✅ Use Hardlinks instead of Copy: `Yes`
+   - ✅ Delete empty folders: `Yes`
+
+**Los indexers se sincronizan automáticamente desde Prowlarr**
+
+### 6. Plex (http://localhost:32400/web)
 
 **Configuración inicial:**
 1. Crear cuenta de Plex (gratis) o iniciar sesión
@@ -189,9 +248,12 @@ docker compose restart sonarr
    - **Movies**:
      - Tipo: Movies
      - Ruta: `/media/movies`
+   - **Music**:
+     - Tipo: Music
+     - Ruta: `/media/music`
 4. Plex escaneará automáticamente el contenido
 
-### 6. Bazarr (http://localhost:6767)
+### 7. Bazarr (http://localhost:6767)
 
 **Configurar Sonarr:**
 1. Settings → Sonarr
@@ -241,7 +303,7 @@ docker compose restart sonarr
 2. Click en **"Add Series"**
 3. Buscar la serie deseada
 4. Configurar:
-   - Root Folder: `/tv`
+   - Root Folder: `/media/tv`
    - Quality Profile: `HD-1080p` (recomendado)
    - Monitor: Episodios a descargar
 5. Click **"Add Series"**
@@ -253,7 +315,7 @@ docker compose restart sonarr
 2. Click en **"Add Movie"**
 3. Buscar la película
 4. Configurar:
-   - Root Folder: `/movies`
+   - Root Folder: `/media/movies`
    - Quality Profile: `HD-1080p` (recomendado)
 5. Click **"Add Movie"**
 6. Radarr buscará y descargará automáticamente
