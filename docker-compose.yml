@@ -99,6 +99,9 @@ services:
     volumes:
       - ./plex/config:/config
       - ./media:/media
+    tmpfs:
+      # Transcode en RAM: más rápido y sin escrituras a disco (ver TranscoderTempDirectory en Plex)
+      - /transcode:size=2g,mode=1777
     restart: unless-stopped
     logging: *default-logging
     healthcheck:
