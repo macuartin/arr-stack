@@ -148,3 +148,58 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+
+  # ── Servicios "pro" ──────────────────────────────────────────
+
+  # Gestión de peticiones (frontend tipo Netflix para usuarios de Plex)
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    init: true
+    environment:
+      TZ: ${TZ:-Europe/Madrid}
+      LOG_LEVEL: info
+      PORT: 5055
+    volumes:
+      - ./seerr/config:/app/config
+    ports:
+      - 5055:5055
+    restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5055/api/v1/settings/public"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Monitoreo y estadísticas de Plex
+  tautulli:
+    image: lscr.io/linuxserver/tautulli:latest
+    container_name: tautulli
+    environment:
+      <<: *common-env
+    volumes:
+      - ./tautulli/config:/config
+    ports:
+      - 8181:8181
+    restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8181/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # Sincroniza custom formats y quality definitions de TRaSH Guides (cron diario)
+  recyclarr:
+    image: ghcr.io/recyclarr/recyclarr:latest
+    container_name: recyclarr
+    environment:
+      <<: *common-env
+      CRON_SCHEDULE: "@daily"
+    volumes:
+      - ./recyclarr/config:/config
+    restart: unless-stopped
+    logging: *default-logging

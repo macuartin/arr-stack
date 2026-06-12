@@ -22,6 +22,9 @@ Stack completo de automatización de descargas y gestión de contenido multimedi
 | **Prowlarr** | 9696 | Gestión centralizada de indexers |
 | **Plex** | 32400 | Media Server para reproducción |
 | **Bazarr** | 6767 | Descarga automática de subtítulos |
+| **Seerr** | 5055 | Gestión de peticiones (frontend tipo Netflix) |
+| **Tautulli** | 8181 | Monitoreo y estadísticas de Plex |
+| **Recyclarr** | — | Sincroniza perfiles/calidad de TRaSH Guides (cron) |
 
 ## 📋 Prerrequisitos
 
