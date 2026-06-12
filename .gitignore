@@ -1,0 +1,34 @@
+# ─────────────────────────────────────────────────────────────
+# Media library (contenido descargado, hardlinks) — nunca versionar
+# ─────────────────────────────────────────────────────────────
+media/
+
+# ─────────────────────────────────────────────────────────────
+# Configuración de cada servicio (*arr / plex / etc.)
+# Contiene SECRETOS: API keys, contraseñas, tokens de Plex,
+# credenciales de indexers y bases de datos SQLite.
+# Se regenera vía la UI de cada app o restaurando un backup nativo.
+# ─────────────────────────────────────────────────────────────
+*/config/
+sonarr/config/
+radarr/config/
+lidarr/config/
+prowlarr/config/
+bazarr/config/
+plex/config/
+transmission/config/
+
+# ─────────────────────────────────────────────────────────────
+# Variables de entorno (PUID/PGID/TZ y cualquier secreto local)
+# ─────────────────────────────────────────────────────────────
+.env
+*.env
+!.env.example
+
+# ─────────────────────────────────────────────────────────────
+# Ruido del sistema
+# ─────────────────────────────────────────────────────────────
+*.log
+*.pid
+.DS_Store
+Thumbs.db
