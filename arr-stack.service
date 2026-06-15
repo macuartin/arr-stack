@@ -1,0 +1,40 @@
+# arr-stack.service — arranque escalonado del stack en cada boot
+#
+# POR QUÉ EXISTE:
+# El `depends_on: condition: service_healthy` del docker-compose.yml SOLO lo
+# respeta `docker compose up`. Cuando la Pi reinicia, es el daemon de Docker
+# quien relanza los contenedores (restart: unless-stopped) e IGNORA la
+# condición de salud → los arranca casi en paralelo → tormenta de CPU/NVMe
+# → RCU stalls y sistema sin responder unos minutos.
+#
+# Este unit hace que sea `docker compose up -d` (que SÍ respeta el health-gating)
+# quien levante el stack en el boot, en olas ordenadas.
+#
+# INSTALACIÓN (requiere sudo):
+#   1) En docker-compose.yml cambiar en TODOS los servicios:
+#          restart: unless-stopped   ->   restart: on-failure
+#      (on-failure NO auto-arranca en el boot del daemon, pero sí recupera
+#       un contenedor que crashea en caliente; así el ÚNICO que levanta el
+#       stack en el boot es este unit, respetando las olas).
+#   2) sudo cp arr-stack.service /etc/systemd/system/
+#   3) sudo systemctl daemon-reload && sudo systemctl enable arr-stack.service
+#   4) Verificar: sudo reboot  y luego  `journalctl -u arr-stack.service`
+#
+# Ajusta WorkingDirectory si mueves el repo.
+
+[Unit]
+Description=arr media stack (docker compose, arranque escalonado)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/home/ubuntu/www/arr-stack
+ExecStart=/usr/bin/docker compose up -d
+ExecStop=/usr/bin/docker compose stop
+TimeoutStartSec=600
+
+[Install]
+WantedBy=multi-user.target

@@ -1,3 +1,7 @@
+# Nombre de proyecto fijo: independiente del nombre de la carpeta
+# (evita que un `mv` del repo orfane los contenedores).
+name: arr-stack
+
 # Variables PUID/PGID/TZ se leen de .env (ver .env.example)
 x-common-env: &common-env
   PUID: ${PUID:-1000}
@@ -15,6 +19,12 @@ services:
   sonarr:
     image: linuxserver/sonarr:latest
     container_name: sonarr
+    # Ola 2: espera a indexer + cliente torrent sanos
+    depends_on:
+      prowlarr:
+        condition: service_healthy
+      transmission:
+        condition: service_healthy
     environment:
       <<: *common-env
     volumes:
@@ -34,6 +44,12 @@ services:
   radarr:
     image: linuxserver/radarr:latest
     container_name: radarr
+    # Ola 2: espera a indexer + cliente torrent sanos
+    depends_on:
+      prowlarr:
+        condition: service_healthy
+      transmission:
+        condition: service_healthy
     environment:
       <<: *common-env
     volumes:
@@ -93,6 +109,12 @@ services:
     image: linuxserver/plex:latest
     container_name: plex
     network_mode: host
+    # Ola 3: arranca tras los *arr para no competir por CPU/NVMe en el cold-start
+    depends_on:
+      sonarr:
+        condition: service_healthy
+      radarr:
+        condition: service_healthy
     environment:
       <<: *common-env
       VERSION: docker
@@ -114,6 +136,12 @@ services:
   lidarr:
     image: linuxserver/lidarr:latest
     container_name: lidarr
+    # Ola 2: espera a indexer + cliente torrent sanos
+    depends_on:
+      prowlarr:
+        condition: service_healthy
+      transmission:
+        condition: service_healthy
     environment:
       <<: *common-env
     volumes:
@@ -133,6 +161,14 @@ services:
   bazarr:
     image: linuxserver/bazarr:latest
     container_name: bazarr
+    # Ola 3: necesita a los *arr sanos para mapear series/pelis
+    depends_on:
+      sonarr:
+        condition: service_healthy
+      radarr:
+        condition: service_healthy
+      lidarr:
+        condition: service_healthy
     environment:
       <<: *common-env
     volumes:
@@ -156,6 +192,14 @@ services:
     image: ghcr.io/seerr-team/seerr:latest
     container_name: seerr
     init: true
+    # Ola 4: frontend de peticiones, depende de plex + *arr
+    depends_on:
+      plex:
+        condition: service_healthy
+      sonarr:
+        condition: service_healthy
+      radarr:
+        condition: service_healthy
     environment:
       TZ: ${TZ:-Europe/Madrid}
       LOG_LEVEL: info
@@ -177,6 +221,10 @@ services:
   tautulli:
     image: lscr.io/linuxserver/tautulli:latest
     container_name: tautulli
+    # Ola 4: monitorea Plex, arranca después de él
+    depends_on:
+      plex:
+        condition: service_healthy
     environment:
       <<: *common-env
     volumes:
@@ -196,6 +244,12 @@ services:
   recyclarr:
     image: ghcr.io/recyclarr/recyclarr:latest
     container_name: recyclarr
+    # Ola 4: sincroniza contra sonarr/radarr, los necesita sanos
+    depends_on:
+      sonarr:
+        condition: service_healthy
+      radarr:
+        condition: service_healthy
     environment:
       <<: *common-env
       CRON_SCHEDULE: "@daily"
