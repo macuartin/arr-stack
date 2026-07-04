@@ -407,6 +407,41 @@ docker compose down
 3. **No exponer puertos** a internet sin VPN/autenticación
 4. **Usar VPN** para descargas torrent (opcional pero recomendado)
 
+## 📸 Config snapshots (versionado sin secretos)
+
+El repositorio versiona **copias sanitizadas** de la configuración de cada app en `configs/`, generadas por script: cada campo sensible (API keys, tokens, passwords, credenciales de providers) se reemplaza por un placeholder nombrado tipo `{{SONARR_API_KEY}}`. Las configs vivas de `*/config/` siguen ignoradas por git.
+
+### Regenerar los snapshots (tras cambiar settings en alguna app)
+
+```bash
+./scripts/config-backup.sh   # sanitiza configs vivas → configs/ y verifica que no hay secretos
+git diff configs/            # revisar SIEMPRE el diff antes de commitear
+git add configs/ && git commit -m "chore(configs): snapshot"
+```
+
+El script **falla** si el resultado contiene algo que parezca un secreto. La redacción combina una lista explícita de campos por servicio y una regla genérica por nombre de clave (`*password*`, `*token*`, `*api_key*`…) que cubre campos nuevos que las apps añadan — ambas en `scripts/sanitize.py`.
+
+### Guardia anti-secretos (pre-commit)
+
+Tras clonar, activa el hook (la config de git no viaja con el clone):
+
+```bash
+git config core.hooksPath scripts/githooks
+```
+
+Bloquea cualquier commit cuyo contenido staged contenga un secreto real de las configs vivas o algo que lo parezca (32 hex, JWT, PEM, `password=...`). También puede ejecutarse a mano: `./scripts/config-check.sh`.
+
+### Secretos de Recyclarr
+
+`recyclarr/config/recyclarr.yml` se versiona directamente (Recyclarr no reescribe su config) y referencia las API keys con `!secret`. Al clonar:
+
+```bash
+cp recyclarr/config/secrets.yml.example recyclarr/config/secrets.yml
+# rellenar con las API keys reales (secrets.yml está en .gitignore)
+```
+
+> ⚠️ Los snapshots son **documentación/backup unidireccional**, no un restore automático: el estado real (indexers, perfiles, series) vive en las bases de datos SQLite de cada app. Para disaster recovery usa el backup nativo de cada app (`Settings → General → Backups`).
+
 ## 🌐 Acceso Remoto con Plex
 
 Para acceder a tu contenido desde fuera de casa:
@@ -418,7 +453,7 @@ Para acceder a tu contenido desde fuera de casa:
 
 - **Zona horaria**: Configurada como `Europe/Madrid` (cambiar `TZ` en el archivo `.env` si es necesario)
 - **PUID/PGID**: Configurados como 1000 (usuario estándar de Linux), definidos en `.env`
-- **Respaldo y secretos**: El repositorio versiona **solo la infraestructura** (`docker-compose.yml`, `README.md`, `.env.example`). Los directorios `*/config/` están en `.gitignore` porque contienen secretos (API keys, contraseñas, token de Plex) y bases de datos. Para respaldar la configuración real usa el backup nativo de cada app (`Settings → General → Backups`) o copia los `config/` por fuera de git.
+- **Respaldo y secretos**: El repositorio versiona la infraestructura (`docker-compose.yml`, `README.md`, `.env.example`) y **snapshots sanitizados** de las configs en `configs/` (ver sección "Config snapshots"). Los directorios `*/config/` vivos están en `.gitignore` porque contienen secretos (API keys, contraseñas, token de Plex) y bases de datos. Para respaldar la configuración real usa el backup nativo de cada app (`Settings → General → Backups`) o copia los `config/` por fuera de git.
 - **Network mode**: Plex usa `host` para mejor rendimiento y descubrimiento de dispositivos
 - **Reinicio automático**: Todos los servicios se reinician automáticamente si fallan
 

@@ -1,0 +1,21 @@
+# Recyclarr — sincroniza configuración recomendada de TRaSH Guides.
+# Docs: https://recyclarr.dev  |  TRaSH: https://trash-guides.info
+#
+# De momento sincroniza solo las QUALITY DEFINITIONS (rangos de tamaño por
+# calidad), que es seguro y NO toca el perfil multi-idioma hecho a mano.
+# Para añadir custom formats de TRaSH, ampliar bajo `custom_formats:` y revisar
+# con `recyclarr sync --preview` antes de aplicar.
+
+sonarr:
+  series:
+    base_url: http://sonarr:8989
+    api_key: !secret sonarr_api_key
+    quality_definition:
+      type: series
+
+radarr:
+  movies:
+    base_url: http://radarr:7878
+    api_key: !secret radarr_api_key
+    quality_definition:
+      type: movie

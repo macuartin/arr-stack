@@ -4,19 +4,26 @@
 media/
 
 # ─────────────────────────────────────────────────────────────
-# Configuración de cada servicio (*arr / plex / etc.)
+# Configuración VIVA de cada servicio (*arr / plex / etc.)
 # Contiene SECRETOS: API keys, contraseñas, tokens de Plex,
 # credenciales de indexers y bases de datos SQLite.
-# Se regenera vía la UI de cada app o restaurando un backup nativo.
+# TODO ignorado por defecto (denylist); las copias versionables
+# se generan sanitizadas en configs/ con scripts/config-backup.sh
 # ─────────────────────────────────────────────────────────────
 */config/
-sonarr/config/
-radarr/config/
-lidarr/config/
-prowlarr/config/
-bazarr/config/
-plex/config/
-transmission/config/
+
+# Excepción recyclarr: no reescribe su config y soporta secrets.yml,
+# así que se versiona in-place con allowlist explícita archivo a archivo.
+!recyclarr/config/
+recyclarr/config/*
+!recyclarr/config/recyclarr.yml
+!recyclarr/config/settings.yml
+!recyclarr/config/secrets.yml.example
+# cinturón y tirantes: ya lo ignora recyclarr/config/*, pero explícito
+recyclarr/config/secrets.yml
+
+# Snapshots sanitizados (generados; SÍ versionados)
+!configs/
 
 # ─────────────────────────────────────────────────────────────
 # Variables de entorno (PUID/PGID/TZ y cualquier secreto local)
