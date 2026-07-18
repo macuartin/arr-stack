@@ -21,6 +21,7 @@ Stack completo de automatización de descargas y gestión de contenido multimedi
 | **Transmission** | 9091 | Cliente de descargas torrent |
 | **Prowlarr** | 9696 | Gestión centralizada de indexers |
 | **Plex** | 32400 | Media Server para reproducción |
+| **Jellyfin** | 8096 | Media server libre (convive con Plex, misma biblioteca) |
 | **Bazarr** | 6767 | Descarga automática de subtítulos |
 | **Seerr** | 5055 | Gestión de peticiones (frontend tipo Netflix) |
 | **Tautulli** | 8181 | Monitoreo y estadísticas de Plex |
@@ -44,7 +45,7 @@ Stack completo de automatización de descargas y gestión de contenido multimedi
 
 ```
 media-stack/
-├── docker-compose.yml   # Definición de los 7 servicios
+├── docker-compose.yml   # Definición de todos los servicios del stack
 ├── .env.example         # Plantilla de variables (PUID/PGID/TZ) → copiar a .env
 ├── .gitignore           # Excluye media/ y los config/ con secretos
 ├── README.md
@@ -54,6 +55,7 @@ media-stack/
 ├── transmission/config/ # Config de Transmission(idem)
 ├── prowlarr/config/     # Config de Prowlarr    (idem)
 ├── plex/config/         # Config de Plex        (idem)
+├── jellyfin/config/     # Config de Jellyfin    (idem)
 ├── bazarr/config/       # Config de Bazarr      (idem)
 └── media/               # ⭐ Directorio unificado (optimizado para hardlinks)
     ├── downloads/       # Descargas de Transmission
@@ -256,7 +258,20 @@ docker image prune -f      # libera las imágenes antiguas
      - Ruta: `/media/music`
 4. Plex escaneará automáticamente el contenido
 
-### 7. Bazarr (http://localhost:6767)
+### 7. Jellyfin (http://localhost:8096)
+
+**Configuración inicial:**
+1. Completar el wizard: idioma, usuario administrador (local, sin cuenta externa)
+2. Agregar bibliotecas (mismas rutas que Plex, misma biblioteca física):
+   - **Shows**: Ruta `/media/tv`
+   - **Movies**: Ruta `/media/movies`
+   - **Music**: Ruta `/media/music`
+3. **No activar aceleración por hardware** (Dashboard → Playback → Transcoding):
+   la Raspberry Pi no tiene encoders HW y Jellyfin deprecó su soporte — el
+   objetivo es que los clientes hagan **direct play**
+4. Jellyfin escaneará automáticamente el contenido
+
+### 8. Bazarr (http://localhost:6767)
 
 **Configurar Sonarr:**
 1. Settings → Sonarr

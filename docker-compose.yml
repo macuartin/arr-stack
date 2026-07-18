@@ -133,6 +133,33 @@ services:
       retries: 3
       start_period: 60s
 
+  jellyfin:
+    image: linuxserver/jellyfin:latest
+    container_name: jellyfin
+    # Ola 3 (como Plex): arranca tras los *arr para no competir en el cold-start
+    depends_on:
+      sonarr:
+        condition: service_healthy
+      radarr:
+        condition: service_healthy
+    environment:
+      <<: *common-env
+    ports:
+      - "8096:8096"
+    volumes:
+      - ./jellyfin/config:/config
+      - ./media:/media
+    # Sin tmpfs de transcode: la Pi no tiene encoders HW (política: direct play);
+    # un transcode software puntual escribe en /config/cache (NVMe)
+    restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8096/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
   lidarr:
     image: linuxserver/lidarr:latest
     container_name: lidarr
