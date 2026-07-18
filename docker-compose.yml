@@ -257,3 +257,19 @@ services:
       - ./recyclarr/config:/config
     restart: unless-stopped
     logging: *default-logging
+
+  # Expone seerr a internet vía Cloudflare Tunnel (token-managed).
+  # El enrutado public-hostname -> http://seerr:5055 se configura en el
+  # dashboard de Cloudflare Zero Trust (Networks > Tunnels).
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: arr-cloudflared
+    command: tunnel run
+    environment:
+      TZ: ${TZ:-Europe/Madrid}
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    depends_on:
+      seerr:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
