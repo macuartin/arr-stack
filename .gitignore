@@ -11,6 +11,9 @@ media/
 # se generan sanitizadas en configs/ con scripts/config-backup.sh
 # ─────────────────────────────────────────────────────────────
 */config/
+# Copias/renombres de configs vivas (p.ej. seerr/config.old-plex tras la
+# migración a Jellyfin) — mismos secretos, mismo trato
+*/config.*/
 
 # Excepción recyclarr: no reescribe su config y soporta secrets.yml,
 # así que se versiona in-place con allowlist explícita archivo a archivo.

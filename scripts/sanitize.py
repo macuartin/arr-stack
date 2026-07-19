@@ -108,9 +108,35 @@ SERVICES = {
             "vapidPublic",
             "main.apiKey",
             "plex.machineId",
+            "jellyfin.apiKey",
+            "jellyfin.serverId",
+            # IDs de biblioteca: no son secretos, pero son 32-hex y disparan
+            # la heurística anti-secretos; fuera del snapshot no aportan nada
+            "jellyfin.libraries.*.id",
             "radarr.*.apiKey",
             "sonarr.*.apiKey",
         ],
+    },
+    # Jellyfin reparte su config en varios XML; los secretos (API keys, users)
+    # viven en su base de datos, no en estos ficheros — la regla genérica queda
+    # como respaldo por si un update introduce claves sensibles.
+    "jellyfin": {
+        "src": "jellyfin/config/system.xml",
+        "dst": "configs/jellyfin/system.xml",
+        "format": "xml",
+        "redact": [],
+    },
+    "jellyfin-network": {
+        "src": "jellyfin/config/network.xml",
+        "dst": "configs/jellyfin/network.xml",
+        "format": "xml",
+        "redact": [],
+    },
+    "jellyfin-encoding": {
+        "src": "jellyfin/config/encoding.xml",
+        "dst": "configs/jellyfin/encoding.xml",
+        "format": "xml",
+        "redact": [],
     },
     "tautulli": {
         "src": "tautulli/config/config.ini",
