@@ -25,46 +25,43 @@
         "blocklistLanguage": "",
         "blocklistedTags": "",
         "blocklistedTagsLimit": 50,
-        "mediaServerType": 1,
+        "mediaServerType": 2,
         "partialRequestsEnabled": true,
         "enableSpecialEpisodes": false,
         "locale": "en",
         "youtubeUrl": ""
     },
     "plex": {
-        "name": "raspberrypi",
-        "ip": "raspberrypi.local",
-        "port": 32400,
-        "useSsl": false,
-        "libraries": [
-            {
-                "id": "1",
-                "name": "Movies",
-                "enabled": true,
-                "type": "movie",
-                "lastScan": 1783202700048
-            },
-            {
-                "id": "2",
-                "name": "TV Shows",
-                "enabled": true,
-                "type": "show",
-                "lastScan": 1783202700055
-            }
-        ],
-        "machineId": "{{SEERR_PLEX_MACHINE_ID}}"
-    },
-    "jellyfin": {
         "name": "",
         "ip": "",
+        "port": 32400,
+        "useSsl": false,
+        "libraries": []
+    },
+    "jellyfin": {
+        "name": "raspberrypi",
+        "ip": "jellyfin",
         "port": 8096,
         "useSsl": false,
         "urlBase": "",
         "externalHostname": "",
         "jellyfinForgotPasswordUrl": "",
-        "libraries": [],
-        "serverId": "",
-        "apiKey": ""
+        "libraries": [
+            {
+                "id": "{{SEERR_JELLYFIN_LIBRARIES_0_ID}}",
+                "name": "Películas",
+                "enabled": true,
+                "type": "movie"
+            },
+            {
+                "id": "{{SEERR_JELLYFIN_LIBRARIES_1_ID}}",
+                "name": "Series",
+                "enabled": true,
+                "type": "show"
+            }
+        ],
+        "serverId": "{{SEERR_JELLYFIN_SERVER_ID}}",
+        "apiKey": "{{SEERR_JELLYFIN_API_KEY}}"
     },
     "tautulli": {},
     "metadataSettings": {
@@ -74,11 +71,10 @@
     "radarr": [
         {
             "name": "radarr",
-            "hostname": "raspberrypi.local",
+            "hostname": "radarr",
             "port": 7878,
             "apiKey": "{{SEERR_RADARR_0_API_KEY}}",
             "useSsl": false,
-            "baseUrl": "",
             "activeProfileId": 4,
             "activeProfileName": "HD-1080p",
             "activeDirectory": "/media/movies",
@@ -95,14 +91,14 @@
     "sonarr": [
         {
             "name": "sonarr",
-            "hostname": "raspberrypi.local",
+            "hostname": "sonarr",
             "port": 8989,
             "apiKey": "{{SEERR_SONARR_0_API_KEY}}",
             "useSsl": false,
             "activeProfileId": 4,
             "activeProfileName": "HD-1080p",
             "activeDirectory": "/media/tv",
-            "animeSeriesType": "standard",
+            "animeSeriesType": "anime",
             "activeAnimeProfileId": 4,
             "activeAnimeProfileName": "HD-1080p",
             "activeAnimeDirectory": "/media/tv",
@@ -110,7 +106,7 @@
             "animeTags": [],
             "is4k": false,
             "isDefault": true,
-            "enableSeasonFolders": true,
+            "enableSeasonFolders": false,
             "syncEnabled": true,
             "preventSearch": false,
             "tagRequests": false,

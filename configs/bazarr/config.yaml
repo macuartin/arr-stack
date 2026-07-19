@@ -33,6 +33,8 @@ backup:
   retention: 31
 betaseries:
   token: ''
+captchaai:
+  captchaai_key: ''
 cinemaz:
   cookies: ''
   user_agent: ''
@@ -62,6 +64,7 @@ general:
   debug: false
   default_und_audio_lang: ''
   default_und_embedded_subtitles_lang: ''
+  disable_all_providers_ssl_verify: false
   dont_notify_manual_actions: false
   embedded_subs_show_desired: true
   embedded_subtitles_parser: ffprobe
@@ -70,7 +73,6 @@ general:
   enabled_providers:
   - opensubtitlescom
   - subf2m
-  - podnapisi
   - gestdown
   external_webhook_password: ''
   external_webhook_url: ''
@@ -90,6 +92,7 @@ general:
   movie_default_profile: 1
   movie_tag_enabled: true
   multithreading: true
+  notify_if_nothing_is_missing_for_signalr_event: false
   page_size: 25
   parse_embedded_audio_track: false
   path_mappings: []
@@ -102,6 +105,7 @@ general:
   serie_default_enabled: true
   serie_default_profile: 1
   serie_tag_enabled: true
+  show_live_badge: true
   single_language: false
   skip_hashing: false
   subfolder: current
@@ -113,6 +117,7 @@ general:
   upgrade_subs: true
   use_embedded_subs: true
   use_external_webhook: false
+  use_jellyfin: false
   use_plex: true
   use_postprocessing: false
   use_postprocessing_threshold: false
@@ -120,12 +125,24 @@ general:
   use_radarr: true
   use_scenename: true
   use_sonarr: true
+  use_whisper_fallback: false
+  use_whisper_fallback_series: false
   utf8_encode: true
   wanted_search_frequency: 6
   wanted_search_frequency_movie: 6
 hdbits:
   passkey: ''
   username: ''
+jellyfin:
+  apikey: ''
+  movie_library: []
+  movie_library_ids: []
+  refresh_method: immediate
+  series_library: []
+  series_library_ids: []
+  update_movie_library: false
+  update_series_library: false
+  url: ''
 jimaku:
   api_key: ''
   enable_ai_subs: false
@@ -151,18 +168,6 @@ log:
   ignore_case: false
   include_filter: ''
   use_regex: false
-movie_scores:
-  audio_codec: 3
-  edition: 1
-  hash: 119
-  hearing_impaired: 1
-  release_group: 13
-  resolution: 2
-  source: 7
-  streaming_service: 1
-  title: 60
-  video_codec: 2
-  year: 30
 napiprojekt:
   only_authors: false
   only_real_names: false
@@ -183,6 +188,9 @@ opensubtitlescom:
   password: '{{BAZARR_OPENSUBTITLESCOM_PASSWORD}}'
   use_hash: true
   username: '{{BAZARR_OPENSUBTITLESCOM_USERNAME}}'
+pipocas:
+  password: ''
+  username: ''
 plex:
   apikey: ''
   auth_method: oauth
@@ -211,8 +219,6 @@ plex:
   update_series_library: false
   user_id: '{{BAZARR_PLEX_USER_ID}}'
   username: '{{BAZARR_PLEX_USERNAME}}'
-podnapisi:
-  verify_ssl: true
 postgresql:
   database: ''
   enabled: false
@@ -247,19 +253,6 @@ radarr:
   ssl: false
   sync_only_monitored_movies: false
   use_ffprobe_cache: true
-series_scores:
-  audio_codec: 3
-  episode: 30
-  hash: 359
-  hearing_impaired: 1
-  release_group: 14
-  resolution: 2
-  season: 30
-  series: 180
-  source: 7
-  streaming_service: 1
-  video_codec: 2
-  year: 90
 sonarr:
   apikey: '{{BAZARR_SONARR_APIKEY}}'
   base_url: ''
@@ -286,9 +279,14 @@ subf2m:
   user_agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko)
     Chrome/124.0.0.0 Safari/537.36
   verify_ssl: true
+subsarr:
+  base_url: ''
 subsource:
   apikey: ''
+subsro:
+  api_key: ''
 subsync:
+  auto_use_original_language: false
   checker:
     blacklisted_languages: []
     blacklisted_providers: []
@@ -299,6 +297,7 @@ subsync:
   no_fix_framerate: true
   subsync_movie_threshold: 70
   subsync_threshold: 90
+  use_original_language: false
   use_subsync: true
   use_subsync_movie_threshold: false
   use_subsync_threshold: false
@@ -314,7 +313,8 @@ titulky:
   username: ''
 translator:
   default_score: 50
-  gemini_key: ''
+  gemini_batch_size: 300
+  gemini_keys: []
   gemini_model: gemini-2.0-flash
   lingarr_token: ''
   lingarr_url: http://lingarr:9876
