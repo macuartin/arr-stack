@@ -138,24 +138,6 @@ SERVICES = {
         "format": "xml",
         "redact": [],
     },
-    "tautulli": {
-        "src": "tautulli/config/config.ini",
-        "dst": "configs/tautulli/config.ini",
-        "format": "ini",
-        "redact": [
-            "General.api_key",
-            "General.jwt_secret",
-            "General.jwt_update_secret",
-            "General.themoviedb_apikey",
-            "General.git_token",
-            "General.http_password",
-            "General.http_hashed_password",
-            "General.http_username",
-            "PMS.pms_token",
-            "PMS.pms_uuid",
-            "PMS.pms_identifier",
-        ],
-    },
 }
 
 

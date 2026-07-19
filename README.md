@@ -20,11 +20,9 @@ Stack completo de automatización de descargas y gestión de contenido multimedi
 | **Lidarr** | 8686 | Gestión automática de música |
 | **Transmission** | 9091 | Cliente de descargas torrent |
 | **Prowlarr** | 9696 | Gestión centralizada de indexers |
-| **Plex** | 32400 | Media Server para reproducción |
-| **Jellyfin** | 8096 | Media server libre (convive con Plex, misma biblioteca) |
+| **Jellyfin** | 8096 | Media Server para reproducción |
 | **Bazarr** | 6767 | Descarga automática de subtítulos |
-| **Seerr** | 5055 | Gestión de peticiones (frontend tipo Netflix) |
-| **Tautulli** | 8181 | Monitoreo y estadísticas de Plex |
+| **Seerr** | 5055 | Gestión de peticiones (frontend tipo Netflix, login con Jellyfin) |
 | **Recyclarr** | — | Sincroniza perfiles/calidad de TRaSH Guides (cron) |
 
 ## 📋 Prerrequisitos
@@ -54,7 +52,6 @@ media-stack/
 ├── lidarr/config/       # Config de Lidarr      (idem)
 ├── transmission/config/ # Config de Transmission(idem)
 ├── prowlarr/config/     # Config de Prowlarr    (idem)
-├── plex/config/         # Config de Plex        (idem)
 ├── jellyfin/config/     # Config de Jellyfin    (idem)
 ├── bazarr/config/       # Config de Bazarr      (idem)
 └── media/               # ⭐ Directorio unificado (optimizado para hardlinks)
@@ -122,7 +119,7 @@ docker compose logs -f sonarr   # uno específico
 ### 6. Reiniciar un servicio específico
 ```bash
 docker compose restart sonarr
-# o radarr, lidarr, transmission, prowlarr, plex, bazarr
+# o radarr, lidarr, transmission, prowlarr, jellyfin, bazarr
 ```
 
 ### 7. Actualizar el stack a la última versión
@@ -241,28 +238,11 @@ docker image prune -f      # libera las imágenes antiguas
 
 **Los indexers se sincronizan automáticamente desde Prowlarr**
 
-### 6. Plex (http://localhost:32400/web)
-
-**Configuración inicial:**
-1. Crear cuenta de Plex (gratis) o iniciar sesión
-2. Nombrar tu servidor
-3. Agregar bibliotecas:
-   - **TV Shows**:
-     - Tipo: TV Shows
-     - Ruta: `/media/tv`
-   - **Movies**:
-     - Tipo: Movies
-     - Ruta: `/media/movies`
-   - **Music**:
-     - Tipo: Music
-     - Ruta: `/media/music`
-4. Plex escaneará automáticamente el contenido
-
-### 7. Jellyfin (http://localhost:8096)
+### 6. Jellyfin (http://localhost:8096)
 
 **Configuración inicial:**
 1. Completar el wizard: idioma, usuario administrador (local, sin cuenta externa)
-2. Agregar bibliotecas (mismas rutas que Plex, misma biblioteca física):
+2. Agregar bibliotecas:
    - **Shows**: Ruta `/media/tv`
    - **Movies**: Ruta `/media/movies`
    - **Music**: Ruta `/media/music`
@@ -271,7 +251,7 @@ docker image prune -f      # libera las imágenes antiguas
    objetivo es que los clientes hagan **direct play**
 4. Jellyfin escaneará automáticamente el contenido
 
-### 8. Bazarr (http://localhost:6767)
+### 7. Bazarr (http://localhost:6767)
 
 **Configurar Sonarr:**
 1. Settings → Sonarr
@@ -353,7 +333,7 @@ Sonarr/Radarr crean hardlinks en /media/tv o /media/movies
         ↓
 Bazarr detecta el nuevo archivo y descarga subtítulos
         ↓
-Plex detecta el nuevo contenido y subtítulos
+Jellyfin detecta el nuevo contenido y subtítulos
         ↓
 ¡Listo para ver con subtítulos!
 ```
@@ -387,7 +367,7 @@ docker logs -f sonarr
 docker logs -f radarr
 docker logs -f transmission
 docker logs -f prowlarr
-docker logs -f plex
+docker logs -f jellyfin
 docker logs -f bazarr
 ```
 
@@ -412,7 +392,7 @@ docker compose down
 - **Transmission**: Ver progreso de descargas en http://localhost:9091
 - **Sonarr/Radarr**: Activity → Queue para ver estado de descargas
 - **Bazarr**: History muestra subtítulos descargados
-- **Plex**: Dashboard muestra actividad de reproducción
+- **Jellyfin**: Dashboard muestra actividad de reproducción y escaneos
 
 ## 🔐 Seguridad
 
@@ -457,20 +437,18 @@ cp recyclarr/config/secrets.yml.example recyclarr/config/secrets.yml
 
 > ⚠️ Los snapshots son **documentación/backup unidireccional**, no un restore automático: el estado real (indexers, perfiles, series) vive en las bases de datos SQLite de cada app. Para disaster recovery usa el backup nativo de cada app (`Settings → General → Backups`).
 
-## 🌐 Acceso Remoto con Plex
+## 🌐 Acceso Remoto
 
-Para acceder a tu contenido desde fuera de casa:
-1. Cuenta Plex maneja el acceso remoto automáticamente
-2. Settings → Network → Enable Remote Access
-3. Plex se encarga del port forwarding y túneles
+- **Peticiones (Seerr)**: expuesto a internet vía Cloudflare Tunnel en `seerr.macuartin.com` (servicio `cloudflared` del compose; el enrutado se configura en Cloudflare Zero Trust).
+- **Reproducción (Jellyfin)**: de momento solo en LAN (`http://<ip>:8096`; los clientes Android/Fire TV no resuelven mDNS `.local` — usar la IP). El acceso remoto para la familia está planeado vía Tailscale, no por Cloudflare Tunnel (el streaming de vídeo por su CDN va contra sus Service-Specific Terms).
 
 ## 📝 Notas
 
 - **Zona horaria**: Configurada como `Europe/Madrid` (cambiar `TZ` en el archivo `.env` si es necesario)
 - **PUID/PGID**: Configurados como 1000 (usuario estándar de Linux), definidos en `.env`
-- **Respaldo y secretos**: El repositorio versiona la infraestructura (`docker-compose.yml`, `README.md`, `.env.example`) y **snapshots sanitizados** de las configs en `configs/` (ver sección "Config snapshots"). Los directorios `*/config/` vivos están en `.gitignore` porque contienen secretos (API keys, contraseñas, token de Plex) y bases de datos. Para respaldar la configuración real usa el backup nativo de cada app (`Settings → General → Backups`) o copia los `config/` por fuera de git.
-- **Network mode**: Plex usa `host` para mejor rendimiento y descubrimiento de dispositivos
+- **Respaldo y secretos**: El repositorio versiona la infraestructura (`docker-compose.yml`, `README.md`, `.env.example`) y **snapshots sanitizados** de las configs en `configs/` (ver sección "Config snapshots"). Los directorios `*/config/` vivos están en `.gitignore` porque contienen secretos (API keys, contraseñas, tokens) y bases de datos. Para respaldar la configuración real usa el backup nativo de cada app (`Settings → General → Backups`) o copia los `config/` por fuera de git.
 - **Reinicio automático**: Todos los servicios se reinician automáticamente si fallan
+- **Historia**: el stack usó Plex como media server hasta julio de 2026; se migró a Jellyfin (Plex puso el streaming remoto tras muro de pago). Las configs viejas de Plex/Tautulli siguen en disco (`plex/config/`, `tautulli/config/`) por si hicieran falta.
 
 ## 🆘 Solución de Problemas
 
@@ -544,9 +522,9 @@ stat media/tv/serie/Season*/archivo.mkv | grep Links
 - Verificar que Prowlarr tenga indexers configurados
 - Verificar conexión entre Prowlarr y Sonarr/Radarr (Settings → Apps)
 
-### Plex no detecta archivos nuevos
-- Forzar escaneo: Biblioteca → ... → Scan Library Files
-- Verificar permisos de archivos en /tv y /movies
+### Jellyfin no detecta archivos nuevos
+- Forzar escaneo: Dashboard → Libraries → Scan All Libraries
+- Verificar permisos de archivos en /media/tv y /media/movies
 
 ### Bazarr no descarga subtítulos
 - Verificar que los proveedores estén configurados correctamente
@@ -588,7 +566,7 @@ stat media/tv/serie/Season*/archivo.mkv | grep Links
 - [Radarr Wiki](https://wiki.servarr.com/radarr)
 - [Prowlarr Wiki](https://wiki.servarr.com/prowlarr)
 - [Bazarr Wiki](https://wiki.bazarr.media/)
-- [Plex Support](https://support.plex.tv/)
+- [Jellyfin Docs](https://jellyfin.org/docs/)
 - [LinuxServer.io Documentation](https://docs.linuxserver.io/)
 
 ---

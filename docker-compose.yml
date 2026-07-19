@@ -105,34 +105,6 @@ services:
       retries: 3
       start_period: 60s
 
-  plex:
-    image: linuxserver/plex:latest
-    container_name: plex
-    network_mode: host
-    # Ola 3: arranca tras los *arr para no competir por CPU/NVMe en el cold-start
-    depends_on:
-      sonarr:
-        condition: service_healthy
-      radarr:
-        condition: service_healthy
-    environment:
-      <<: *common-env
-      VERSION: docker
-    volumes:
-      - ./plex/config:/config
-      - ./media:/media
-    tmpfs:
-      # Transcode en RAM: más rápido y sin escrituras a disco (ver TranscoderTempDirectory en Plex)
-      - /transcode:size=2g,mode=1777
-    restart: unless-stopped
-    logging: *default-logging
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:32400/identity"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
   jellyfin:
     image: linuxserver/jellyfin:latest
     container_name: jellyfin
@@ -214,14 +186,14 @@ services:
 
   # ── Servicios "pro" ──────────────────────────────────────────
 
-  # Gestión de peticiones (frontend tipo Netflix para usuarios de Plex)
+  # Gestión de peticiones (frontend tipo Netflix, login con Jellyfin)
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
     container_name: seerr
     init: true
-    # Ola 4: frontend de peticiones, depende de plex + *arr
+    # Ola 4: frontend de peticiones, depende de jellyfin + *arr
     depends_on:
-      plex:
+      jellyfin:
         condition: service_healthy
       sonarr:
         condition: service_healthy
@@ -245,28 +217,6 @@ services:
       start_period: 30s
 
   # Monitoreo y estadísticas de Plex
-  tautulli:
-    image: lscr.io/linuxserver/tautulli:latest
-    container_name: tautulli
-    # Ola 4: monitorea Plex, arranca después de él
-    depends_on:
-      plex:
-        condition: service_healthy
-    environment:
-      <<: *common-env
-    volumes:
-      - ./tautulli/config:/config
-    ports:
-      - 8181:8181
-    restart: unless-stopped
-    logging: *default-logging
-    healthcheck:
-      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8181/status"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-
   # Sincroniza custom formats y quality definitions de TRaSH Guides (cron diario)
   recyclarr:
     image: ghcr.io/recyclarr/recyclarr:latest
