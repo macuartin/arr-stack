@@ -2,6 +2,19 @@
 # (evita que un `mv` del repo orfane los contenedores).
 name: arr-stack
 
+# ---------------------------------------------------------------------------
+# La biblioteca vive en /mnt/data/media, en su propio disco (el NVMe de 1TB que
+# venia de la raspi), no junto al repo. Motivo: es la unica carga de esta
+# maquina que crece SOLA, porque la descargan sonarr y radarr sin intervencion.
+# Compartiendo disco con el sistema, una descarga desbocada se llevaba por
+# delante Docker y los dos conectores de clientes en produccion. Aislada, lo
+# peor que puede pasar es que se llene un disco del que no depende nada critico.
+#
+# Descargas y biblioteca siguen bajo el MISMO punto de montaje a proposito: si
+# se separan, cada importacion deja de ser un hardlink instantaneo y pasa a ser
+# una copia que duplica el fichero mientras se comparte.
+# ---------------------------------------------------------------------------
+
 # Variables PUID/PGID/TZ se leen de .env (ver .env.example)
 x-common-env: &common-env
   PUID: ${PUID:-1000}
@@ -29,7 +42,7 @@ services:
       <<: *common-env
     volumes:
       - ./sonarr/config:/config
-      - ./media:/media
+      - /mnt/data/media:/media
     ports:
       - 8989:8989
     restart: unless-stopped
@@ -54,7 +67,7 @@ services:
       <<: *common-env
     volumes:
       - ./radarr/config:/config
-      - ./media:/media
+      - /mnt/data/media:/media
     ports:
       - 7878:7878
     restart: unless-stopped
@@ -73,7 +86,7 @@ services:
       <<: *common-env
     volumes:
       - ./transmission/config:/config
-      - ./media:/media
+      - /mnt/data/media:/media
     ports:
       - 9091:9091
       - 51413:51413
@@ -150,7 +163,7 @@ services:
       - "192.168.68.71:8096:8096"
     volumes:
       - ./jellyfin/config:/config
-      - ./media:/media
+      - /mnt/data/media:/media
     # Transcodificacion por hardware: la Radeon 8060S de la Framework SI tiene
     # encoders (motores VCN), al contrario que la Pi. render es el grupo dueño
     # de renderD128 y hace falta para que el contenedor pueda abrirlo.
@@ -188,7 +201,7 @@ services:
       <<: *common-env
     volumes:
       - ./lidarr/config:/config
-      - ./media:/media
+      - /mnt/data/media:/media
     ports:
       - 8686:8686
     restart: unless-stopped
@@ -215,7 +228,7 @@ services:
       <<: *common-env
     volumes:
       - ./bazarr/config:/config
-      - ./media:/media
+      - /mnt/data/media:/media
     ports:
       - 6767:6767
     restart: unless-stopped
