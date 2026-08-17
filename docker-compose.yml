@@ -135,9 +135,16 @@ services:
     environment:
       <<: *common-env
     ports:
-      # 8097 y no 8096: en la Framework el 8096 lo ocupa la interfaz de gestion
-      # del openvpn del cliente de AWS VPN (--management 127.0.0.1 8096).
-      - "8097:8096"
+      # Publicado SOLO en la IP de la LAN, no en 0.0.0.0, y esto es deliberado:
+      # el cliente de AWS VPN usa 127.0.0.1:8096 como interfaz de gestion de su
+      # openvpn (--management 127.0.0.1 8096). Atarse a 0.0.0.0 se lo robaria y
+      # la VPN dejaria de conectar, que es peor que cualquier molestia de
+      # Jellyfin. Asi conviven: la VPN se queda su localhost y los clientes
+      # tienen el puerto por defecto, que es lo que espera el autodescubrimiento.
+      #
+      # Contrapartida: queda atado a esta IP, que es DHCP. Si cambia, Jellyfin
+      # no arranca (fallo visible, no silencioso). Conviene reserva en el router.
+      - "192.168.68.70:8096:8096"
     volumes:
       - ./jellyfin/config:/config
       - ./media:/media
