@@ -105,6 +105,24 @@ services:
       retries: 3
       start_period: 60s
 
+  # Resuelve los desafios de Cloudflare de los trackers (indexer proxy de Prowlarr)
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    environment:
+      <<: *common-env
+      LOG_LEVEL: ${FLARESOLVERR_LOG_LEVEL:-info}
+    ports:
+      - 8191:8191
+    restart: unless-stopped
+    logging: *default-logging
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8191/health | grep -q ok"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 90s
+
   jellyfin:
     image: linuxserver/jellyfin:latest
     container_name: jellyfin
@@ -117,12 +135,27 @@ services:
     environment:
       <<: *common-env
     ports:
-      - "8096:8096"
+      # 8097 y no 8096: en la Framework el 8096 lo ocupa la interfaz de gestion
+      # del openvpn del cliente de AWS VPN (--management 127.0.0.1 8096).
+      - "8097:8096"
     volumes:
       - ./jellyfin/config:/config
       - ./media:/media
-    # Sin tmpfs de transcode: la Pi no tiene encoders HW (política: direct play);
-    # un transcode software puntual escribe en /config/cache (NVMe)
+    # Transcodificacion por hardware: la Radeon 8060S de la Framework SI tiene
+    # encoders (motores VCN), al contrario que la Pi. render es el grupo dueño
+    # de renderD128 y hace falta para que el contenedor pueda abrirlo.
+    devices:
+      - /dev/dri:/dev/dri
+    # GIDs numericos, no nombres: la imagen de linuxserver trae 'video' (44) pero
+    # NO trae 'render', asi que por nombre no resolveria y el contenedor no
+    # podria abrir /dev/dri/renderD128. 992 es el gid de render en la Framework.
+    group_add:
+      - "992"
+      - "44"
+    # El transcode va a tmpfs y no a /config/cache: aqui sobra RAM y evita
+    # castigar el NVMe con escrituras que se tiran a los 5 minutos.
+    tmpfs:
+      - /transcode:size=8g
     restart: unless-stopped
     logging: *default-logging
     healthcheck:
@@ -219,7 +252,11 @@ services:
   # Monitoreo y estadísticas de Plex
   # Sincroniza custom formats y quality definitions de TRaSH Guides (cron diario)
   recyclarr:
-    image: ghcr.io/recyclarr/recyclarr:latest
+    # Version fija, no :latest. Upstream dejo de publicar el tag 'latest' en
+    # ghcr y solo sube tags de version; la raspi seguia funcionando con una
+    # imagen cacheada de cuando existia. Al migrar el 2026-08-17 el pull fallo
+    # con "not found" y aborto el arranque del stack entero.
+    image: ghcr.io/recyclarr/recyclarr:7.4.0
     container_name: recyclarr
     # Ola 4: sincroniza contra sonarr/radarr, los necesita sanos
     depends_on:
@@ -247,6 +284,83 @@ services:
       TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
     depends_on:
       seerr:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+
+  # ---------------------------------------------------------------------------
+  # Exportadores de metricas para Prometheus.
+  #
+  # Viven aqui y no en el compose de monitoring a proposito: cuando este stack
+  # migre a la Framework, sus exportadores viajan con el. Prometheus los alcanza
+  # por puerto de host (host.docker.internal), no por red compartida, asi que
+  # tras la migracion solo cambia la direccion en prometheus.yml.
+  #
+  # Sin bazarr (exportarr no lo soporta), ni jellyfin ni transmission (sin
+  # exportador fiable en arm64). Los tres siguen cubiertos por cAdvisor y Loki.
+  # ---------------------------------------------------------------------------
+  sonarr-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: sonarr-exporter
+    command: ["sonarr"]
+    environment:
+      PORT: 9707
+      URL: "http://sonarr:8989"
+      APIKEY: ${SONARR_API_KEY:?falta SONARR_API_KEY en .env}
+    ports:
+      - 9707:9707
+    depends_on:
+      sonarr:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+
+  radarr-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: radarr-exporter
+    command: ["radarr"]
+    environment:
+      PORT: 9708
+      URL: "http://radarr:7878"
+      APIKEY: ${RADARR_API_KEY:?falta RADARR_API_KEY en .env}
+    ports:
+      - 9708:9708
+    depends_on:
+      radarr:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+
+  lidarr-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: lidarr-exporter
+    command: ["lidarr"]
+    environment:
+      PORT: 9709
+      URL: "http://lidarr:8686"
+      APIKEY: ${LIDARR_API_KEY:?falta LIDARR_API_KEY en .env}
+    ports:
+      - 9709:9709
+    depends_on:
+      lidarr:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *default-logging
+
+  # Es el que mas interesa ahora mismo: expone la salud de los indexers, que es
+  # donde estan los 429 TooManyRequests que Prowlarr devuelve a sonarr y radarr.
+  prowlarr-exporter:
+    image: ghcr.io/onedr0p/exportarr:latest
+    container_name: prowlarr-exporter
+    command: ["prowlarr"]
+    environment:
+      PORT: 9710
+      URL: "http://prowlarr:9696"
+      APIKEY: ${PROWLARR_API_KEY:?falta PROWLARR_API_KEY en .env}
+    ports:
+      - 9710:9710
+    depends_on:
+      prowlarr:
         condition: service_healthy
     restart: unless-stopped
     logging: *default-logging
