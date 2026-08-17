@@ -142,9 +142,12 @@ services:
       # Jellyfin. Asi conviven: la VPN se queda su localhost y los clientes
       # tienen el puerto por defecto, que es lo que espera el autodescubrimiento.
       #
-      # Contrapartida: queda atado a esta IP, que es DHCP. Si cambia, Jellyfin
-      # no arranca (fallo visible, no silencioso). Conviene reserva en el router.
-      - "192.168.68.70:8096:8096"
+      # La IP es la que tenia la raspi: al decomisarla, se reservo en el router
+      # para la Framework (MAC 9c:bf:0d:01:f7:63) para no tener que reapuntar
+      # los clientes de Jellyfin. Es reserva DHCP, no azar, asi que cablearla
+      # aqui es seguro. Si algun dia se pierde la reserva, Jellyfin no arranca:
+      # es un fallo visible (Exited 128), no silencioso.
+      - "192.168.68.71:8096:8096"
     volumes:
       - ./jellyfin/config:/config
       - ./media:/media
